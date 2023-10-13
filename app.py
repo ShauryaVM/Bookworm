@@ -7,13 +7,18 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
+app.config['SQLALCHEMY_DATABASE_URI'] =\
+        'sqlite:///' + os.path.join(basedir, 'bookworm.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Session(app)
 
-db = SQLAlchemy("sqlite:///bookworm.db")
+db = SQLAlchemy(app)
 
 @app.after_request
 def after_request(response):
