@@ -1,6 +1,8 @@
 import os
 import gunicorn
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Integer, String, text
+from sqlalchemy.orm import Mapped, mapped_column
 from flask import Flask, flash, redirect, render_template, request, session
 from functools import wraps
 from flask_session import Session
@@ -13,8 +15,7 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] =\
-        'sqlite:///' + os.path.join(basedir, 'bookworm.db')
+app.config['SQLALCHEMY_DATABASE_URI'] ="sqlite:///bookworm.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Session(app)
 
@@ -39,7 +40,7 @@ def login_required(f):
 @app.route("/")
 @login_required
 def index():
-    user = db.execute("SELECT * from 'users' where 'users'.id = ?", session["user_id"])
+    user = db.engine.execute(text("SELECT * from 'users' where 'users'.id = ?", session["user_id"]))
     goal = user[0]["goal"]
     read = user[0]["#_of_books_read"]
     if goal is None:
@@ -47,8 +48,8 @@ def index():
     elif read is None:
         read = 0
     away = goal - read
-    books = db.execute("SELECT * from 'books' where title not in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"])
-    reviews = db.execute("SELECT * from reviews where title not in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"])
+    books = db.engine.execute(text("SELECT * from 'books' where title not in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"]))
+    reviews = db.engine.execute(text("SELECT * from reviews where title not in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"]))
     def find_reviews(title):
         book_reviews = []
         for review in reviews:
@@ -65,7 +66,7 @@ def login():
             return render_template("apology.html", message="Must provide username")
         if not request.form.get("password"):
             return render_template("apology.html", message="Must provide password")
-        user = db.execute("SELECT * from 'users' WHERE username = ?", request.form.get("username"))
+        user = db.engine.execute(text("SELECT * from 'users' WHERE username = ?", request.form.get("username")))
         if len(user) != 1 or not check_password_hash(user[0]["hash"], request.form.get("password")):
             return render_template("apology.html", message="Invalid credentials given: please try again or click Forgot Password")
         session["user_id"] = user[0]["id"]
@@ -92,7 +93,7 @@ def register():
         if not request.form.get("username"):
             return render_template("apology.html", message="Must provide username")
 
-        usernamecheck = db.execute("SELECT * FROM 'users' WHERE username like ?", request.form.get("username"))
+        usernamecheck = db.engine.execute(text("SELECT * FROM 'users' WHERE username like ?", request.form.get("username")))
         if len(usernamecheck) == 1:
             return render_template("apology.html", message="Username already exists")
 
@@ -104,7 +105,7 @@ def register():
 
         username = request.form.get("username")
         password = generate_password_hash(request.form.get("password"), method='pbkdf2:sha256', salt_length=10)
-        db.execute("INSERT INTO 'users'(username, hash) VALUES(?, ?)",username,password)
+        db.engine.execute(text("INSERT INTO 'users'(username, hash) VALUES(?, ?)",username,password))
 
         return redirect("/")
 
@@ -115,7 +116,7 @@ def register():
 def forgot():
     if request.method == "POST":
         resetpass = generate_password_hash("bookworm", method='pbkdf2:sha256', salt_length=10)
-        db.execute("UPDATE 'users' SET hash = ? where username = ?", resetpass, request.form.get("username"))
+        db.engine.execute(text("UPDATE 'users' SET hash = ? where username = ?", resetpass, request.form.get("username")))
 
         return redirect("/")
 
@@ -130,7 +131,7 @@ def change():
             return render_template("apology.html", message="Passwords do not match")
         newpassword = request.form.get("newpass")
         newpasswordsecure = generate_password_hash(newpassword, method='pbkdf2:sha256', salt_length=10)
-        db.execute("UPDATE 'users' SET hash = ? where id = ?", newpasswordsecure, session["user_id"])
+        db.engine.execute(text("UPDATE 'users' SET hash = ? where id = ?", newpasswordsecure, session["user_id"]))
 
         return redirect("/")
     else:
@@ -142,7 +143,7 @@ def goal():
     if request.method == "POST":
         if(int(request.form.get("goal")) <= 0):
             return render_template("apology.html", message="Invalid number of books")
-        db.execute("UPDATE 'users' SET 'goal' = ? where id = ?", int(request.form.get("goal")), session["user_id"])
+        db.engine.execute(text("UPDATE 'users' SET 'goal' = ? where id = ?", int(request.form.get("goal")), session["user_id"]))
         return redirect("/")
     else:
         return render_template("goal.html")
@@ -151,18 +152,18 @@ def goal():
 @login_required
 def form():
     if request.method == "POST":
-        db.execute("INSERT INTO reviews VALUES(?,?,?)",request.form.get("review"), request.form.get("title"),session["user_id"])
-        user = db.execute("SELECT * from 'users' where id = ?",session["user_id"])
+        db.engine.execute(text("INSERT INTO reviews VALUES(?,?,?)",request.form.get("review"), request.form.get("title"),session["user_id"]))
+        user = db.engine.execute(text("SELECT * from 'users' where id = ?",session["user_id"]))
         booksnum = user[0]["#_of_books_read"]
         if(booksnum is None):
             booksnum = 0
-        db.execute("UPDATE 'users' SET '#_of_books_read' = ? where id = ?", (booksnum + 1),session["user_id"])
-        rows = db.execute("SELECT * from 'books' WHERE title = ? AND author = ?",request.form.get("title"), request.form.get("author"))
+        db.engine.execute(text("UPDATE 'users' SET '#_of_books_read' = ? where id = ?", (booksnum + 1),session["user_id"]))
+        rows = db.engine.execute(text("SELECT * from 'books' WHERE title = ? AND author = ?",request.form.get("title"), request.form.get("author")))
         if(len(rows) == 1):
             reviews = rows[0]["#_of_reviews"]
-            db.execute("UPDATE 'books' SET '#_of_reviews' = ? where title = ? AND author = ?",(reviews+1),request.form.get("title"), request.form.get("author"))
+            db.engine.execute(text("UPDATE 'books' SET '#_of_reviews' = ? where title = ? AND author = ?",(reviews+1),request.form.get("title"), request.form.get("author")))
         else:
-            db.execute("INSERT INTO 'books' VALUES(?,?,?)", request.form.get("title"), request.form.get("author"), 1)
+            db.engine.execute(text("INSERT INTO 'books' VALUES(?,?,?)", request.form.get("title"), request.form.get("author"), 1))
 
         return redirect("/")
     else:
@@ -171,8 +172,8 @@ def form():
 @app.route("/activity", methods=["GET","POST"])
 @login_required
 def activity():
-    books = db.execute("SELECT * from 'books' where title in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"])
-    reviews = db.execute("SELECT * from reviews where title in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"])
+    books = db.engine.execute(text("SELECT * from 'books' where title in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"]))
+    reviews = db.engine.execute(text("SELECT * from reviews where title in (SELECT 'books'.title from 'books' join reviews on reviews.title='books'.title join 'users' on 'users'.id=reviews.user where 'users'.id = ?)", session["user_id"]))
     def find_reviews(title):
         book_reviews = []
         for review in reviews:
