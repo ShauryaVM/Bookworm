@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block main %}
+    <div>
+        {% if goal == 0 %}
+            <h1>Set a Goal!</h1>
+        {% else %}
+            <h1>Your Goal: {{ goal }}</h1>
+            {% if awayfromgoal == goal %}
+            <h2>You are {{ awayfromgoal }} books away from your goal! Start reading books!</h2>
+            {% elif awayfromgoal == 0 %}
+            <h2>You have reached your goal! Set a new goal!</h2>
+            {% else %}
+            <h2>You are {{ awayfromgoal }} books away from your goal! Good job!</h2>
+            {% endif %}
+        {% endif %}
+    </div>
+    <div id = "left">
+        <hr>
+        <h2>Books read by fellow Bookwormers:</h2>
+        <br>
+    {% for suggestion in suggestions %}
+        <h3 id="left"><u>{{ suggestion["title"] }}</u></h3>
+        <h4>Author: {{ suggestion["author"] }}</h4>
+        <h4>Reviews from other Bookwormers:</h4>
+        {% for review in find(suggestion["title"])%}
+            <li>{{ review }}</li>
+        {% endfor %}
+        <br>
+    {% endfor %}
+    </div>
+{% endblock %}

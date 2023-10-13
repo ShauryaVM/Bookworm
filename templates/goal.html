@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Set Goal
+{% endblock %}
+
+{% block main %}
+    <h1>Set a goal of books to read</h1>
+    <form action="/goal" method="post">
+        <div>
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="goal" name="goal" placeholder="# of books" type="number">
+        </div>
+        <button class="btn btn-primary" type="submit">Set Goal</button>
+    </form>
+{% endblock %}

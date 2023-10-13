@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Your Activity
+{% endblock %}
+
+{% block main %}
+    <div id = "left">
+        <hr>
+        <h2>Books you have read:</h2>
+        <br>
+    {% for book in books %}
+        <h3 id="left"><u>{{ book["title"] }}</u></h3>
+        <h4>Author: {{ book["author"] }}</h4>
+        <h4>Your Review:</h4>
+        {% for review in find(book["title"])%}
+            <li>{{ review }}</li>
+        {% endfor %}
+        <br>
+    {% endfor %}
+    </div>
+{% endblock %}

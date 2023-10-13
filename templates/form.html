@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block title%}
+    Form
+{% endblock %}
+
+{% block main %}
+    <form action="/form" method="post">
+        <div>
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="title" name="title" placeholder="Book Title" type="text" required>
+        </div>
+        <div>
+            <input class="form-control mx-auto w-auto" id="author" name="author" placeholder="Author" type="text" required>
+        </div>
+        <div>
+            <input class="form-control mx-auto w-auto" id="review" name="review" placeholder="Review of book" type="text" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+{% endblock %}
